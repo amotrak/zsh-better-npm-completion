@@ -86,28 +86,27 @@ _zbnc_npm_uninstall_completion() {
 }
 
 _zbnc_npm_run_completion() {
-
-  # Only run on `npm run ?`
-  [[ ! "$(_zbnc_no_of_npm_args)" = "3" ]] && return
-
-  # Look for a package.json file
+  # Only run on `npm run ?` or `npm run <script> ?`
+  local num_args="$(_zbnc_no_of_npm_args)"
   local package_json="$(_zbnc_recursively_look_for package.json)"
 
-  # Return if we can't find package.json
-  [[ "$package_json" = "" ]] && return
+  # If just after 'npm run', complete scripts
+  if [[ "$num_args" = "3" ]]; then
+    [[ "$package_json" = "" ]] && return
+    local -a options
+    options=(${(f)"$(_zbnc_parse_package_json_for_script_suggestions $package_json)"})
+    [[ "$#options" = 0 ]] && return
+    _describe 'values' options
+    custom_completion=true
+    return
+  fi
 
-  # Parse scripts in package.json
-  local -a options
-  options=(${(f)"$(_zbnc_parse_package_json_for_script_suggestions $package_json)"})
-
-  # Return if we can't parse it
-  [[ "$#options" = 0 ]] && return
-
-  # Load the completions
-  _describe 'values' options
-
-  # Make sure we don't run default completion
-  custom_completion=true
+  # If after 'npm run <script>', complete files/paths
+  if [[ "$num_args" = "4" ]]; then
+    _files
+    custom_completion=true
+    return
+  fi
 }
 
 _zbnc_default_npm_completion() {
